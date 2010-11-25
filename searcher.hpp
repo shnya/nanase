@@ -136,6 +136,8 @@ class Searcher {
     free(data);
   }
 
+  Searcher();
+
 public:
   struct ResultType {
     size_t docid;
@@ -182,7 +184,6 @@ public:
   Searcher(TCManager &_docdb, TCManager &_idxdb)
     : docdb(_docdb), idxdb(_idxdb) {
   }
-
 };
 
 

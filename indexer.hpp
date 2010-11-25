@@ -50,6 +50,7 @@ class Indexer {
     return reinterpret_cast<void *>(str);
   }
 
+  Indexer();
 public:
   void add(const char *url, const char *doc){
     int docid = docdb.inc("seq", 4, 1);
