@@ -53,14 +53,14 @@ private:
     return m;
   }
 
-  void find_sibling(const IdxType &a, IdxType &b){
+  void extract_connected(const IdxType &a, IdxType &b, int distance){
     IdxType::iterator itr = b.begin();
     while(itr != b.end()){
       IdxTypeRange found = a.equal_range(itr->first);
       bool connected = false;
       for(IdxType::const_iterator itr2 = found.first;
           itr2 != found.second; ++itr2){
-        if(itr->second == itr2->second + 1){
+        if(itr->second == itr2->second + distance){
           connected = true;
         }
       }
@@ -71,9 +71,10 @@ private:
     }
   }
 
-  IdxType& exact_match(std::vector<IdxType> &v){
+  // Argument vector will be destroyed.
+  IdxType& exact_match(std::vector<IdxType> &v, size_t char_num){
     for(size_t i = 1; i < v.size(); i++){
-      find_sibling(v[i-1], v[i]);
+      extract_connected(v[i-1], v[i], (char_num == 2 * i + 1) ? 1 : 2);
     }
     return v[v.size() - 1];
   }
@@ -82,27 +83,44 @@ private:
   _search(const char* query){
     std::vector<IdxType> v;
 
-    const char *p = query;
+    const char *p = query, *q;
+    size_t char_num = 0;
+
+    // This code a bit complicated due to a performance issue.
+    // I will search with the query splitted into each two-letters,
+    // but last two-letter overlap previous two-letter.
+    // ex)
+    // input abc => search {ab, bc}  // overlapped 
+    // input abcd => search {ab, cd} // not overlapped
+    // input abcde => search {ab, cd, de} // overlapped
     while(*p != '\0'){
       const char *sub = utf8substr(p, 2);
+      // dealing with that the number of character is odd.
       if(*(utf8nextchar(sub)) == '\0'){
         delete[] sub;
-        break;
+        p = utf8nextchar(q);
+        char_num -= 1;
+        continue;
       }
       void *data;
       int n;
       idxdb.read(sub, strlen(sub) + 1, &data, &n);
+
       delete[] sub;
       if(data == NULL) break;
+
       IdxType v2 = Deserialize(data, n);
       free(data);
+
       v.push_back(v2);
-      p = utf8nextchar(p);
+      q = p;
+      p = utf8nextchar(utf8nextchar(p));
+      char_num += 2;
     }
     std::map<size_t, double> results;
 
     if(v.size() == 0) return results;
-    IdxType &matched = exact_match(v);
+    IdxType &matched = exact_match(v, char_num);
     for(IdxType::iterator itr = matched.begin(); itr != matched.end(); ++itr){
       results[itr->first] += 1.0;
     }
