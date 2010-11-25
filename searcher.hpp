@@ -78,8 +78,6 @@ private:
     return v[v.size() - 1];
   }
 
-
-
   std::map<size_t, double>
   _search(const char* query){
     std::vector<IdxType> v;
@@ -148,7 +146,7 @@ public:
 
     std::map<size_t, double> scores = _search(query);
     int max_document_num  = docdb.inc("seq", 4, 0);
-    double idf = log(static_cast<double>(1 + max_document_num) 
+    double idf = log(static_cast<double>(1 + max_document_num)
                      / static_cast<double>(scores.size()));
 
 
