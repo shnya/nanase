@@ -46,6 +46,9 @@ class TCManager {
     // throw std::logic_error("tchdb has not yet initialized.");
   }
 
+  TCManager(const TCManager&);
+  TCManager& operator=(const TCManager&);
+
 public:
   class TCManagerException : std::exception {
     std::string error;
