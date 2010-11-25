@@ -23,6 +23,7 @@
 
 
 #include <iostream>
+#include <iomanip>
 using namespace std;
 int main(int argc, char *argv[])
 {
@@ -35,7 +36,7 @@ int main(int argc, char *argv[])
 
   Searcher sch;
   sch.open();
-  std::vector<Searcher::ResultType> v = sch.search("dd");
+  std::vector<Searcher::ResultType> v = sch.search("dddd");
 
   if(v.size() == 0)
     cout << "No results found" << endl;
@@ -48,4 +49,3 @@ int main(int argc, char *argv[])
 
   return 0;
 }
-

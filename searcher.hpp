@@ -32,64 +32,53 @@ class Searcher {
 
   TCManager docdb, idxdb;
 
-  typedef std::vector<std::pair<size_t, size_t> > IdxType;
-public:
-  struct ResultType {
-    size_t docid;
-    double score;
-    std::string url;
-    std::string text;
-
-    ResultType(size_t _docid, double _score, 
-               const std::string &_url = "", const std::string &_text = "")
-      : docid(_docid), score(_score), url(_url), text(_text) {}
-
-    ~ResultType(){}
-  };
+  typedef size_t DocumentID;
+  typedef size_t Position;
+  typedef std::multimap<DocumentID, Position> IdxType;
+  typedef std::pair<IdxType::const_iterator,
+                    IdxType::const_iterator> IdxTypeRange;
 
 private:
 
-  std::vector<std::pair<size_t, size_t> >
+  IdxType
   Deserialize(const void *data, size_t len) {
-    std::vector<std::pair<size_t, size_t> > v;
+    IdxType m;
     const size_t *val = reinterpret_cast<const size_t *>(data);
     for(size_t i = 0; i <= len; i++){
       size_t docid = *val++;
       size_t pos = *val++;
-      v.push_back(std::make_pair(docid, pos));
+      m.insert(std::make_pair(docid, pos));
       i += sizeof(size_t) * 2;
     }
-    return v;
+    return m;
   }
 
-  void find_sibling(const IdxType &a, const IdxType &b, IdxType &result){
-    for(IdxType::const_iterator itr = a.begin(); itr != a.end(); ++itr){
-      size_t current_docid = itr->first; size_t current_pos = itr->second;
-      for(IdxType::const_iterator itr2 = b.begin(); itr2 != b.end(); ++itr2){
-        size_t next_docid = itr2->first;  size_t next_pos = itr2->second;
-        if(current_docid == next_docid && current_pos + 1 == next_pos){
-          result.push_back(*itr2);
+  void find_sibling(const IdxType &a, IdxType &b){
+    IdxType::iterator itr = b.begin();
+    while(itr != b.end()){
+      IdxTypeRange found = a.equal_range(itr->first);
+      bool connected = false;
+      for(IdxType::const_iterator itr2 = found.first;
+          itr2 != found.second; ++itr2){
+        if(itr->second == itr2->second + 1){
+          connected = true;
         }
       }
+      if(connected)
+        ++itr;
+      else
+        b.erase(itr++);
     }
   }
 
-  IdxType exact_match(const std::vector<IdxType> &v){
-    IdxType matched = v[0];
+  IdxType& exact_match(std::vector<IdxType> &v){
     for(size_t i = 1; i < v.size(); i++){
-      IdxType cand;
-      find_sibling(matched, v[i], cand);
-      matched = cand;
+      find_sibling(v[i-1], v[i]);
     }
-    return matched;
+    return v[v.size() - 1];
   }
 
 
-  struct CompareResult {
-    bool operator()(const ResultType &a, const ResultType &b){
-      return a.score > b.score;
-    }
-  };
 
   std::map<size_t, double>
   _search(const char* query){
@@ -112,12 +101,12 @@ private:
       v.push_back(v2);
       p = utf8nextchar(p);
     }
-    std::map<size_t, double> results; 
+    std::map<size_t, double> results;
 
     if(v.size() == 0) return results;
-    IdxType matched = exact_match(v);
+    IdxType &matched = exact_match(v);
     for(IdxType::iterator itr = matched.begin(); itr != matched.end(); ++itr){
-      results[itr->first] += 10.0;
+      results[itr->first] += 1.0;
     }
 
     return results;
@@ -134,17 +123,43 @@ private:
   }
 
 public:
+  struct ResultType {
+    size_t docid;
+    double score;
+    std::string url;
+    std::string text;
+
+    ResultType(size_t _docid, double _score,
+               const std::string &_url = "", const std::string &_text = "")
+      : docid(_docid), score(_score), url(_url), text(_text) {}
+
+    ~ResultType(){}
+  };
+
+  struct CompareResult {
+    bool operator()(const ResultType &a, const ResultType &b){
+      return a.score > b.score;
+    }
+  };
 
   std::vector<ResultType>
   search(const char* query){
     std::vector<ResultType> results;
 
     std::map<size_t, double> scores = _search(query);
+    int max_document_num  = docdb.inc("seq", 4, 0);
+    double idf = log(static_cast<double>(1 + max_document_num) 
+                     / static_cast<double>(scores.size()));
+
+
     for(std::map<size_t, double>::iterator itr = scores.begin();
         itr != scores.end(); ++itr){
       DocInfo docinfo(itr->first);
       get_doc_info(docinfo);
-      results.push_back(ResultType(itr->first, itr->second, docinfo.url));
+      results.push_back(ResultType(itr->first,
+                                   idf * itr->second
+                                   / static_cast<double>(docinfo.wordnum),
+                                   docinfo.url));
     }
     std::sort(results.begin(), results.end(), CompareResult());
     return results;
