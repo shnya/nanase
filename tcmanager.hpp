@@ -40,7 +40,7 @@ class TCManager {
 
   void CheckInitialized() const throw() {
     assert(hdb != NULL);
-    // I handle only compile time checking.
+    // I handle only debug time checking.
     // If you want to check dynamically, please uncomment below.
     // if(hdb == NULL)
     // throw std::logic_error("tchdb has not yet initialized.");

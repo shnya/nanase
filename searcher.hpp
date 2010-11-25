@@ -30,15 +30,13 @@
 
 class Searcher {
 
-  TCManager docdb, idxdb;
+  TCManager &docdb, &idxdb;
 
   typedef size_t DocumentID;
   typedef size_t Position;
   typedef std::multimap<DocumentID, Position> IdxType;
   typedef std::pair<IdxType::const_iterator,
                     IdxType::const_iterator> IdxTypeRange;
-
-private:
 
   IdxType
   Deserialize(const void *data, size_t len) {
@@ -181,15 +179,10 @@ public:
     return results;
   }
 
-  void open(){
-    idxdb.open("idx.db");
-    docdb.open("doc.db");
+  Searcher(TCManager &_docdb, TCManager &_idxdb)
+    : docdb(_docdb), idxdb(_idxdb) {
   }
 
-  void close(){
-    idxdb.close();
-    docdb.close();
-  }
 };
 
 

@@ -18,24 +18,22 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
-#include "indexer.hpp"
-#include "searcher.hpp"
-
+#include "nanase.hpp"
 
 #include <iostream>
 #include <iomanip>
 using namespace std;
 int main(int argc, char *argv[])
 {
-  Indexer idx;
-  idx.open();
+  Nanase &nanase = Nanase::get_instance();
+  nanase.open();
+
+  Indexer idx = nanase.get_indexer();
   idx.add("http://www.yahoo.co.jp/", "aaa bbb dddd dddccc");
   idx.add("http://www.google.co.jp/", "aaa bbb ddd ccc");
-  idx.close();
 
 
-  Searcher sch;
-  sch.open();
+  Searcher sch = nanase.get_searcher();
   std::vector<Searcher::ResultType> v = sch.search("dddd");
 
   if(v.size() == 0)
@@ -45,7 +43,7 @@ int main(int argc, char *argv[])
     cout << itr->docid << " " << itr->url << " " << itr->score << endl;
   }
 
-  sch.close();
+  nanase.close();
 
   return 0;
 }

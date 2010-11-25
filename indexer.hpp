@@ -20,7 +20,7 @@
 
 #ifndef INDEXER_HPP
 #define INDEXER_HPP
- 
+
 #include "utf8.hpp"
 #include "tcmanager.hpp"
 #include "docinfo.hpp"
@@ -28,7 +28,7 @@
 #include <cstring>
 
 class Indexer {
-  TCManager docdb, idxdb;
+  TCManager &docdb, &idxdb;
 
   void *
   Serialize(size_t docid, size_t pos){
@@ -78,14 +78,8 @@ public:
     delete[] data;
   }
 
-  void open(){
-    idxdb.open("idx.db");
-    docdb.open("doc.db");
-  }
-
-  void close(){
-    idxdb.close();
-    docdb.close();
+  Indexer(TCManager &_docdb, TCManager &_idxdb)
+    : docdb(_docdb), idxdb(_idxdb) {
   }
 
 };
