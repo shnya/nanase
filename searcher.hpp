@@ -86,11 +86,11 @@ private:
     const char *p = query, *q;
     size_t char_num = 0;
 
-    // This code a bit complicated due to a performance issue.
+    // This code a bit complicated due to performance.
     // I will search with the query splitted into each two-letters,
-    // but last two-letter overlap previous two-letter.
+    // but the last two-letter maybe overlap previous two-letter.
     // ex)
-    // input abc => search {ab, bc}  // overlapped 
+    // input abc => search {ab, bc}  // overlapped
     // input abcd => search {ab, cd} // not overlapped
     // input abcde => search {ab, cd, de} // overlapped
     while(*p != '\0'){
