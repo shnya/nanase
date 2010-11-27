@@ -26,7 +26,7 @@ using namespace std;
 using namespace nanase;
 int main(int argc, char *argv[])
 {
-  Nanase nanase("test");
+  Nanase nanase("test.idx");
 
   Indexer idx = nanase.get_indexer();
   idx.add("http://www.yahoo.co.jp/", "aaa bbb dddd dddccc");

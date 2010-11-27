@@ -26,7 +26,7 @@
 
 namespace nanase {
   class Nanase {
-    TCManager idxdb, docdb;
+    TCManager idxdb;
 
     Nanase(){};
     Nanase(const Nanase&);
@@ -34,28 +34,24 @@ namespace nanase {
 
   public:
 
-    Nanase(std::string app_name, std::string dbdir = "./"){
-      std::string idxdb_name(dbdir + app_name + ".idxdb");
-      std::string docdb_name(dbdir + app_name + ".docdb");
-      open(idxdb_name, docdb_name);
+    Nanase(std::string db_path){
+      open(db_path);
     }
 
-    void open(std::string idxdb_name, std::string docdb_name){
-      idxdb.open(idxdb_name.c_str());
-      docdb.open(docdb_name.c_str());
+    void open(std::string db_path){
+      idxdb.open(db_path.c_str());
     }
 
     void close(){
       idxdb.close();
-      docdb.close();
     }
 
     Searcher get_searcher(){
-      return Searcher(docdb, idxdb);
+      return Searcher(idxdb);
     }
 
     Indexer get_indexer(){
-      return Indexer(docdb, idxdb);
+      return Indexer(idxdb);
     }
 
   };

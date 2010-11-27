@@ -22,7 +22,7 @@ $(PROGRAM): $(OBJS)
 .PHONY: clean
 clean:
 	$(RM) $(PROGRAM) $(OBJS)
-	$(RM) *.idxdb *.docdb
+	$(RM) *.idx
 
 
 .PHONY: check-syntax

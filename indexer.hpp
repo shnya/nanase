@@ -29,10 +29,10 @@
 
 namespace nanase {
   class Indexer {
-    TCManager &docdb, &idxdb;
+    TCManager &idxdb;
 
     void *
-    Serialize(size_t docid, size_t pos){
+    Serialize(int docid, size_t pos) const throw() {
       size_t *str = new size_t[2];
       str[0] = docid;
       str[1] = pos;
@@ -53,8 +53,8 @@ namespace nanase {
 
     Indexer();
   public:
-    void add(const char *url, const char *doc){
-      int docid = docdb.inc("seq", 4, 1);
+    void add(const char *url, const char *doc) const {
+      int docid = idxdb.inc("seq", 3, 1);
       DocInfo docinfo(docid);
       docinfo.url = strdup(url);
       docinfo.urllen = strlen(url) + 1;
@@ -65,7 +65,7 @@ namespace nanase {
       size_t pos = 0;
       while(*p != '\0'){
         const char *sub = utf8substr(p, 2);
-        idxdb.append(sub, strlen(sub) + 1,
+        idxdb.append(sub, strlen(sub),
                      Serialize(docid, pos), sizeof(size_t) * 2);
         delete[] sub;
         p = utf8nextchar(p);
@@ -76,14 +76,17 @@ namespace nanase {
       unsigned char *data;
       size_t data_size;
       docinfo.serialize(&data, &data_size);
-      docdb.write(&docid, sizeof(docid), data, data_size);
+      unsigned char *key_data = new unsigned char[sizeof(docid) + 2];
+      key_data[0] = 0xFF; key_data[1] = 0xFF;
+      memcpy(key_data + 2, &docid, sizeof(docid));
+      idxdb.write(key_data, sizeof(docid) + 2, data, data_size);
+      delete[] key_data;
       delete[] data;
     }
 
-    Indexer(TCManager &_docdb, TCManager &_idxdb)
-      : docdb(_docdb), idxdb(_idxdb) {
+    Indexer(TCManager &_idxdb)
+      : idxdb(_idxdb) {
     }
-
   };
 }
 #endif /* INDEXER_HPP */

@@ -31,9 +31,9 @@
 namespace nanase {
   class Searcher {
 
-    TCManager &docdb, &idxdb;
+    TCManager &idxdb;
 
-    typedef size_t DocumentID;
+    typedef int DocumentID;
     typedef size_t Position;
     typedef std::multimap<DocumentID, Position> IdxType;
     typedef std::pair<IdxType::const_iterator,
@@ -43,7 +43,7 @@ namespace nanase {
       IdxType m;
       const size_t *val = reinterpret_cast<const size_t *>(data);
       for(size_t i = 0; i <= len; i++){
-        size_t docid = *val++;
+        int docid = *val++;
         size_t pos = *val++;
         m.insert(std::make_pair(docid, pos));
         i += sizeof(size_t) * 2;
@@ -77,7 +77,7 @@ namespace nanase {
       return v[v.size() - 1];
     }
 
-    std::map<size_t, double> _Search(const char* query){
+    std::map<size_t, double> _Search(const char* query) const {
       std::vector<IdxType> v;
 
       const char *p = query, *q;
@@ -101,7 +101,7 @@ namespace nanase {
         }
         void *data;
         int n;
-        idxdb.read(sub, strlen(sub) + 1, &data, &n);
+        idxdb.read(sub, strlen(sub), &data, &n);
 
         delete[] sub;
         if(data == NULL) break;
@@ -125,25 +125,31 @@ namespace nanase {
       return results;
     }
 
-    void GetDocInfo(DocInfo &docinfo){
+    bool GetDocInfo(DocInfo &docinfo) const {
       void *data;
       int data_size;
-      docdb.read(&docinfo.docid, sizeof(docinfo.docid), &data, &data_size);
+      unsigned char *key_data = new unsigned char[sizeof(docinfo.docid) + 2];
+      key_data[0] = 0xFF; key_data[1] = 0xFF;
+      memcpy(key_data + 2, &docinfo.docid, sizeof(docinfo.docid));
+      idxdb.read(key_data, sizeof(docinfo.docid) + 2, &data, &data_size);
+      delete[] key_data;
+      if(data == NULL) return false;
       docinfo.deserialize(reinterpret_cast<unsigned char *>(data),
                           data_size, false);
       free(data);
+      return true;
     }
 
     Searcher();
 
   public:
     struct ResultType {
-      size_t docid;
+      int docid;
       double score;
       std::string url;
       std::string text;
 
-      ResultType(size_t _docid, double _score,
+      ResultType(int _docid, double _score,
                  const std::string &_url = "", const std::string &_text = "")
         : docid(_docid), score(_score), url(_url), text(_text) {}
 
@@ -151,25 +157,24 @@ namespace nanase {
     };
 
     struct CompareResult {
-      bool operator()(const ResultType &a, const ResultType &b){
+      bool operator()(const ResultType &a, const ResultType &b) const throw() {
         return a.score > b.score;
       }
     };
 
     std::vector<ResultType>
-    search(const char* query){
+    search(const char* query) const {
       std::vector<ResultType> results;
 
       std::map<size_t, double> scores = _Search(query);
-      int max_document_num  = docdb.inc("seq", 4, 0);
+      int max_document_num  = idxdb.inc("seq", 3, 0);
       double idf = log(static_cast<double>(1 + max_document_num)
                        / static_cast<double>(scores.size()));
-
 
       for(std::map<size_t, double>::iterator itr = scores.begin();
           itr != scores.end(); ++itr){
         DocInfo docinfo(itr->first);
-        GetDocInfo(docinfo);
+        if(!GetDocInfo(docinfo)) continue;
         results.push_back(ResultType(itr->first,
                                      idf * itr->second
                                      / static_cast<double>(docinfo.wordnum),
@@ -179,8 +184,8 @@ namespace nanase {
       return results;
     }
 
-    Searcher(TCManager &_docdb, TCManager &_idxdb)
-      : docdb(_docdb), idxdb(_idxdb) {
+    Searcher(TCManager &_idxdb)
+      : idxdb(_idxdb) {
     }
   };
 };
