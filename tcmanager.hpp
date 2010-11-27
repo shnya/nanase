@@ -50,7 +50,7 @@ namespace nanase {
     TCManager& operator=(const TCManager&);
 
   public:
-    class TCManagerException : std::exception {
+    class TCManagerException : public std::exception {
       std::string error;
     public:
       TCManagerException(const char *err) throw() : error(err) {}

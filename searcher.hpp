@@ -21,17 +21,18 @@
 #ifndef SEARCHER_HPP
 #define SEARCHER_HPP
 
-#include "utf8.hpp"
-#include "tcmanager.hpp"
-#include "docinfo.hpp"
 #include <vector>
 #include <map>
 #include <algorithm>
 
+#include "utf8.hpp"
+#include "indexdb.hpp"
+#include "docinfo.hpp"
+
 namespace nanase {
   class Searcher {
 
-    TCManager &idxdb;
+    IndexDB &idxdb;
 
     typedef int DocumentID;
     typedef size_t Position;
@@ -39,17 +40,6 @@ namespace nanase {
     typedef std::pair<IdxType::const_iterator,
                       IdxType::const_iterator> IdxTypeRange;
 
-    static IdxType Deserialize(const void *data, size_t len){
-      IdxType m;
-      const size_t *val = reinterpret_cast<const size_t *>(data);
-      for(size_t i = 0; i <= len; i++){
-        int docid = *val++;
-        size_t pos = *val++;
-        m.insert(std::make_pair(docid, pos));
-        i += sizeof(size_t) * 2;
-      }
-      return m;
-    }
 
     static void ExtractConnected(const IdxType &a, IdxType &b, int distance){
       IdxType::iterator itr = b.begin();
@@ -99,17 +89,9 @@ namespace nanase {
           char_num -= 1;
           continue;
         }
-        void *data;
-        int n;
-        idxdb.read(sub, strlen(sub), &data, &n);
 
+        v.push_back(idxdb.read_index(sub));
         delete[] sub;
-        if(data == NULL) break;
-
-        IdxType v2 = Deserialize(data, n);
-        free(data);
-
-        v.push_back(v2);
         q = p;
         p = utf8nextchar(utf8nextchar(p));
         char_num += 2;
@@ -125,20 +107,6 @@ namespace nanase {
       return results;
     }
 
-    bool GetDocInfo(DocInfo &docinfo) const {
-      void *data;
-      int data_size;
-      unsigned char *key_data = new unsigned char[sizeof(docinfo.docid) + 2];
-      key_data[0] = 0xFF; key_data[1] = 0xFF;
-      memcpy(key_data + 2, &docinfo.docid, sizeof(docinfo.docid));
-      idxdb.read(key_data, sizeof(docinfo.docid) + 2, &data, &data_size);
-      delete[] key_data;
-      if(data == NULL) return false;
-      docinfo.deserialize(reinterpret_cast<unsigned char *>(data),
-                          data_size, false);
-      free(data);
-      return true;
-    }
 
     Searcher();
 
@@ -167,14 +135,14 @@ namespace nanase {
       std::vector<ResultType> results;
 
       std::map<size_t, double> scores = _Search(query);
-      int max_document_num  = idxdb.inc("seq", 3, 0);
+      int max_document_num  = idxdb.get_current_docid();
       double idf = log(static_cast<double>(1 + max_document_num)
                        / static_cast<double>(scores.size()));
 
       for(std::map<size_t, double>::iterator itr = scores.begin();
           itr != scores.end(); ++itr){
         DocInfo docinfo(itr->first);
-        if(!GetDocInfo(docinfo)) continue;
+        if(!idxdb.read_docinfo(docinfo)) continue;
         results.push_back(ResultType(itr->first,
                                      idf * itr->second
                                      / static_cast<double>(docinfo.wordnum),
@@ -184,7 +152,7 @@ namespace nanase {
       return results;
     }
 
-    Searcher(TCManager &_idxdb)
+    Searcher(IndexDB &_idxdb)
       : idxdb(_idxdb) {
     }
   };

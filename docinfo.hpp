@@ -30,12 +30,23 @@ namespace nanase {
     size_t wordnum;
     size_t urllen;
     size_t textlen;
-    const char *url;
-    const char *text;
+    char *url;
+    char *text;
+
+    DocInfo(const DocInfo &);
+    DocInfo &operator=(const DocInfo &);
 
     DocInfo(int _docid)
       : docid(_docid),  wordnum(0), urllen(0), textlen(0),
         url(NULL), text(NULL)  { }
+
+    DocInfo(int _docid, const char *_url, const char *_text)
+      : docid(_docid),
+        urllen(sizeof(char) * strlen(_url)), textlen(sizeof(char) * strlen(_text)),
+        url(new char[urllen]), text(new char[textlen]) {
+      memcpy(url, _url, urllen);
+      memcpy(text, _text, textlen);
+    }
 
     ~DocInfo(){
       if(url != NULL) delete[] url;
@@ -80,15 +91,17 @@ namespace nanase {
       offset += sizeof(size_t);
 
       if(urllen > 0){
-        char *urll = new char[urllen];
+        char *urll = new char[urllen + 1];
         memcpy(urll, data + offset, sizeof(char) * urllen);
+        urll[urllen] = '\0';
         url = urll;
         offset += sizeof(urllen * sizeof(char));
       }
 
       if(with_text && textlen > 0){
-        char *textl = new char[textlen];
+        char *textl = new char[textlen + 1];
         memcpy(textl, data + offset, sizeof(char) * textlen);
+        textl[textlen] = '\0';
         text = textl;
       }
     }

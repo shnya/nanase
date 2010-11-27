@@ -23,23 +23,21 @@
 
 #include "searcher.hpp"
 #include "indexer.hpp"
+#include "indexdb.hpp"
 
 namespace nanase {
   class Nanase {
-    TCManager idxdb;
+    IndexDB idxdb;
 
-    Nanase(){};
     Nanase(const Nanase&);
     Nanase& operator=(const Nanase&);
 
   public:
 
-    Nanase(std::string db_path){
-      open(db_path);
-    }
+    Nanase(const std::string &db_path) : idxdb(db_path) {}
 
-    void open(std::string db_path){
-      idxdb.open(db_path.c_str());
+    void open(const std::string &db_path) {
+      idxdb.open(db_path);
     }
 
     void close(){

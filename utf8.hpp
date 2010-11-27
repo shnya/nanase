@@ -24,7 +24,7 @@
 #include <cstring>
 #include <exception>
 namespace nanase {
-  class UTF8Exception : std::exception {
+  class UTF8Exception : public std::exception {
   public:
     UTF8Exception() {}
     ~UTF8Exception() throw() {}
