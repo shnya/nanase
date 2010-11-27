@@ -23,72 +23,72 @@
 
 #include <cstring>
 #include <exception>
+namespace nanase {
+  class UTF8Exception : std::exception {
+  public:
+    UTF8Exception() {}
+    ~UTF8Exception() throw() {}
+  };
 
-class UTF8Exception : std::exception {
-public:
-  UTF8Exception() {}
-  ~UTF8Exception() throw() {}
-};
-
-int utf8charlen(const unsigned char c)
-{
-  if(c == 0x00) return 0;
-  if(c < 0x80) return 1;
-  if(c < 0xC2) throw UTF8Exception();
-  if(c < 0xE0) return 2;
-  if(c < 0xF0) return 3;
-  if(c < 0xF8) return 4;
-  if(c < 0xFC) return 5;
-  if(c < 0xFE) return 6;
-  return 1;
-}
-
-char *utf8substr(const char *s, int len){
-  int n = 0, size = 0;
-  const char *p = s;
-  int l;
-  while((l = utf8charlen(*p)) && n != len){
-    p += l;
-    size += l;
-    n++;
+  int utf8charlen(const unsigned char c)
+  {
+    if(c == 0x00) return 0;
+    if(c < 0x80) return 1;
+    if(c < 0xC2) throw UTF8Exception();
+    if(c < 0xE0) return 2;
+    if(c < 0xF0) return 3;
+    if(c < 0xF8) return 4;
+    if(c < 0xFC) return 5;
+    if(c < 0xFE) return 6;
+    return 1;
   }
-  if(l == 0) size++;
-  char *str = new char[size + 1];
-  strncpy(str, s, size);
-  str[size] = '\0';
 
-  return str;
-}
+  char *utf8substr(const char *s, int len){
+    int n = 0, size = 0;
+    const char *p = s;
+    int l;
+    while((l = utf8charlen(*p)) && n != len){
+      p += l;
+      size += l;
+      n++;
+    }
+    if(l == 0) size++;
+    char *str = new char[size + 1];
+    strncpy(str, s, size);
+    str[size] = '\0';
 
-const char *utf8nextchar(const char *s){
-  return s + utf8charlen(*s);
-}
-
-const char *utf8advance(const char *s, unsigned int len){
-  size_t l = 0;
-  const char *p = s;
-  while(*p != '\0' && l < len ){
-    p = utf8nextchar(p);
-    l++;
+    return str;
   }
-  return p;
+
+  const char *utf8nextchar(const char *s){
+    return s + utf8charlen(*s);
+  }
+
+  const char *utf8advance(const char *s, unsigned int len){
+    size_t l = 0;
+    const char *p = s;
+    while(*p != '\0' && l < len ){
+      p = utf8nextchar(p);
+      l++;
+    }
+    return p;
+  }
+
+  // // bi-gram extraction example
+  // #include <iostream>
+  // using namespace std;
+  //
+  // int main(int argc, char *argv[])
+  // {
+  //   const char *p = "大きなノッポの古時計";
+  //   while(*p != '\0'){
+  //     char *sub = utf8substr(p, 2);
+  //     cout << sub << " ";
+  //     delete[] sub;
+  //     p = utf8nextchar(p);
+  //   }
+  //   cout << endl;
+  //   return 0;
+  // }
 }
-
-// // bi-gram extraction example
-// #include <iostream>
-// using namespace std;
-//
-// int main(int argc, char *argv[])
-// {
-//   const char *p = "大きなノッポの古時計";
-//   while(*p != '\0'){
-//     char *sub = utf8substr(p, 2);
-//     cout << sub << " ";
-//     delete[] sub;
-//     p = utf8nextchar(p);
-//   }
-//   cout << endl;
-//   return 0;
-// }
-
 #endif /* UTF8_UTILITY_HPP */

@@ -23,6 +23,7 @@
 #include <iostream>
 #include <iomanip>
 using namespace std;
+using namespace nanase;
 int main(int argc, char *argv[])
 {
   Nanase nanase("test");

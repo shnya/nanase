@@ -24,39 +24,40 @@
 #include "searcher.hpp"
 #include "indexer.hpp"
 
-class Nanase {
-  TCManager idxdb, docdb;
+namespace nanase {
+  class Nanase {
+    TCManager idxdb, docdb;
 
-  Nanase(){};
-  Nanase(const Nanase&);
-  Nanase& operator=(const Nanase&);
+    Nanase(){};
+    Nanase(const Nanase&);
+    Nanase& operator=(const Nanase&);
 
-public:
+  public:
 
-  Nanase(std::string app_name, std::string dbdir = "./"){
-    std::string idxdb_name(dbdir + app_name + ".idxdb");
-    std::string docdb_name(dbdir + app_name + ".docdb");
-    open(idxdb_name, docdb_name);
-  }
+    Nanase(std::string app_name, std::string dbdir = "./"){
+      std::string idxdb_name(dbdir + app_name + ".idxdb");
+      std::string docdb_name(dbdir + app_name + ".docdb");
+      open(idxdb_name, docdb_name);
+    }
 
-  void open(std::string idxdb_name, std::string docdb_name){
-    idxdb.open(idxdb_name.c_str());
-    docdb.open(docdb_name.c_str());
-  }
+    void open(std::string idxdb_name, std::string docdb_name){
+      idxdb.open(idxdb_name.c_str());
+      docdb.open(docdb_name.c_str());
+    }
 
-  void close(){
-    idxdb.close();
-    docdb.close();
-  }
+    void close(){
+      idxdb.close();
+      docdb.close();
+    }
 
-  Searcher get_searcher(){
-    return Searcher(docdb, idxdb);
-  }
+    Searcher get_searcher(){
+      return Searcher(docdb, idxdb);
+    }
 
-  Indexer get_indexer(){
-    return Indexer(docdb, idxdb);
-  }
+    Indexer get_indexer(){
+      return Indexer(docdb, idxdb);
+    }
 
+  };
 };
-
 #endif /* NANASE_HPP */

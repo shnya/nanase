@@ -26,7 +26,7 @@
 #include <exception>
 #include <string>
 
-
+namespace nanase {
 #define TCMANAGER_ERROR_CHECK(pred) do{             \
     if((pred)){                                     \
       int ecode = tchdbecode(hdb);                  \
@@ -34,101 +34,102 @@
     }                                               \
   } while(0)
 
-// This class is simple wrapper class for tokyo cabinet.
-class TCManager {
-  TCHDB *hdb;
+  // This class is simple wrapper class for tokyo cabinet.
+  class TCManager {
+    TCHDB *hdb;
 
-  void CheckInitialized() const throw() {
-    assert(hdb != NULL);
-    // I handle only debug time checking.
-    // If you want to check dynamically, please uncomment below.
-    // if(hdb == NULL)
-    // throw std::logic_error("tchdb has not yet initialized.");
-  }
+    void CheckInitialized() const throw() {
+      assert(hdb != NULL);
+      // I handle only debug time checking.
+      // If you want to check dynamically, please uncomment below.
+      // if(hdb == NULL)
+      // throw std::logic_error("tchdb has not yet initialized.");
+    }
 
-  TCManager(const TCManager&);
-  TCManager& operator=(const TCManager&);
+    TCManager(const TCManager&);
+    TCManager& operator=(const TCManager&);
 
-public:
-  class TCManagerException : std::exception {
-    std::string error;
   public:
-    TCManagerException(const char *err) throw() : error(err) {}
-    const char *what() const throw() { return error.c_str(); }
-    ~TCManagerException() throw() {}
+    class TCManagerException : std::exception {
+      std::string error;
+    public:
+      TCManagerException(const char *err) throw() : error(err) {}
+      const char *what() const throw() { return error.c_str(); }
+      ~TCManagerException() throw() {}
+    };
+
+    TCManager(void) : hdb(NULL) {}
+    TCManager(const char *fname) throw (TCManagerException) {
+      open(fname);
+    }
+
+    // Because closing DB may cause exception,
+    // you must close db explicitly.
+    ~TCManager() throw() { assert(hdb == NULL); }
+
+    void read(const void *key, int ksiz, void **val, int *vsiz)
+      const throw (TCManagerException) {
+      CheckInitialized();
+      *val = tchdbget(hdb, key, ksiz, vsiz);
+      TCMANAGER_ERROR_CHECK(tchdbecode(hdb) != TCESUCCESS
+                            && tchdbecode(hdb) != TCENOREC);
+    }
+
+    void append(const void *key, int ksiz, const void *val, int vsiz)
+      const throw (TCManagerException) {
+      CheckInitialized();
+      TCMANAGER_ERROR_CHECK(!tchdbputcat(hdb, key, ksiz, val, vsiz));
+    }
+
+    int inc(const void *key, int ksiz, int increment)
+      const throw(TCManagerException) {
+      int ret;
+      CheckInitialized();
+      TCMANAGER_ERROR_CHECK((ret = tchdbaddint(hdb, key, ksiz, increment))
+                            == INT_MIN);
+      return ret;
+    }
+
+    void write(const void *key, int ksiz, const void *val, int vsiz)
+      const throw (TCManagerException) {
+      CheckInitialized();
+      TCMANAGER_ERROR_CHECK(!tchdbput(hdb, key, ksiz, val, vsiz));
+    }
+
+    void close() throw (TCManagerException) {
+      CheckInitialized();
+      TCMANAGER_ERROR_CHECK(!tchdbclose(hdb));
+      tchdbdel(hdb);
+      hdb = NULL;
+    }
+
+    void open(const char *fname)  throw (TCManagerException) {
+      TCMANAGER_ERROR_CHECK((hdb = tchdbnew()) == NULL);
+      TCMANAGER_ERROR_CHECK(!tchdbopen(hdb, fname, HDBOWRITER | HDBOCREAT));
+    }
   };
-
-  TCManager(void) : hdb(NULL) {}
-  TCManager(const char *fname) throw (TCManagerException) {
-    open(fname);
-  }
-
-  // Because closing DB may cause exception,
-  // you must close db explicitly.
-  ~TCManager() throw() { assert(hdb == NULL); }
-
-  void read(const void *key, int ksiz, void **val, int *vsiz)
-    const throw (TCManagerException) {
-    CheckInitialized();
-    *val = tchdbget(hdb, key, ksiz, vsiz);
-    TCMANAGER_ERROR_CHECK(tchdbecode(hdb) != TCESUCCESS
-                          && tchdbecode(hdb) != TCENOREC);
-  }
-
-  void append(const void *key, int ksiz, const void *val, int vsiz)
-    const throw (TCManagerException) {
-    CheckInitialized();
-    TCMANAGER_ERROR_CHECK(!tchdbputcat(hdb, key, ksiz, val, vsiz));
-  }
-
-  int inc(const void *key, int ksiz, int increment)
-    const throw(TCManagerException) {
-    int ret;
-    CheckInitialized();
-    TCMANAGER_ERROR_CHECK((ret = tchdbaddint(hdb, key, ksiz, increment))
-                          == INT_MIN);
-    return ret;
-  }
-
-  void write(const void *key, int ksiz, const void *val, int vsiz)
-    const throw (TCManagerException) {
-    CheckInitialized();
-    TCMANAGER_ERROR_CHECK(!tchdbput(hdb, key, ksiz, val, vsiz));
-  }
-
-  void close() throw (TCManagerException) {
-    CheckInitialized();
-    TCMANAGER_ERROR_CHECK(!tchdbclose(hdb));
-    tchdbdel(hdb);
-    hdb = NULL;
-  }
-
-  void open(const char *fname)  throw (TCManagerException) {
-    TCMANAGER_ERROR_CHECK((hdb = tchdbnew()) == NULL);
-    TCMANAGER_ERROR_CHECK(!tchdbopen(hdb, fname, HDBOWRITER | HDBOCREAT));
-  }
-};
-
 #undef TCMANAGER_ERROR_CHECK
-#endif /* TCMANAGER_HPP */
 
-// // usage example
-// #include <iostream>
-// using namespace std;
-// int main(int argc, char *argv[])
-// {
-//   TCManager tc("test.hdb");
-//   tc.write("aaa", 4, "bbb", 4);
-//   tc.append("aaa", 4, "ccc", 4);
-//   const char *val;
-//   int siz;
-//   tc.read("aaa", 4, reinterpret_cast<const void **>(&val), &siz);
-//   cout << val << " " << val + 4 << " " << siz << endl;
-//   free(val);
-//   int n = tc.inc("ddd", 4, 1);
-//   cout << n << endl;
-//   n = tc.inc("ddd", 4, 5);
-//   cout << n << endl;
-//   tc.close();
-//   return 0;
-// }
+  // // usage example
+  // #include <iostream>
+  // using namespace std;
+  // int main(int argc, char *argv[])
+  // {
+  //   TCManager tc("test.hdb");
+  //   tc.write("aaa", 4, "bbb", 4);
+  //   tc.append("aaa", 4, "ccc", 4);
+  //   const char *val;
+  //   int siz;
+  //   tc.read("aaa", 4, reinterpret_cast<const void **>(&val), &siz);
+  //   cout << val << " " << val + 4 << " " << siz << endl;
+  //   free(val);
+  //   int n = tc.inc("ddd", 4, 1);
+  //   cout << n << endl;
+  //   n = tc.inc("ddd", 4, 5);
+  //   cout << n << endl;
+  //   tc.close();
+  //   return 0;
+  // }
+
+}
+#endif /* TCMANAGER_HPP */
