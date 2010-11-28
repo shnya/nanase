@@ -33,15 +33,15 @@ namespace nanase {
 
     Indexer();
   public:
-    void add(const char *url, const char *text) const {
+    void add(const char *url, const char *title, const char *text) const {
       int docid = idxdb.get_new_docid();
-      DocInfo docinfo(docid, url, text);
+      DocInfo docinfo(docid, url, title);
 
       const char *p = text;
       size_t pos = 0;
       while(*p != '\0'){
         const char *sub = utf8substr(p, 2);
-        idxdb.append_index(sub, docid, pos);
+        idxdb.append_index(sub, docid, pos, "");
         delete[] sub;
         p = utf8nextchar(p);
         pos++;

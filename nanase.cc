@@ -29,18 +29,19 @@ int main(int argc, char *argv[])
   Nanase nanase("test.idx");
 
   Indexer idx = nanase.get_indexer();
-  idx.add("http://www.yahoo.co.jp/", "aaa bbb dddd dddccc");
-  idx.add("http://www.google.co.jp/", "aaa bbb ddd ccc");
+  idx.add("http://www.yahoo.co.jp/", "a_title", "aaa bbb dddd dddccc");
+  idx.add("http://www.google.co.jp/", "b_title", "aaa bbb ddd abc ccc");
 
 
-  Searcher sch = nanase.get_searcher();
-  std::vector<Searcher::ResultType> v = sch.search("dddd");
+    Searcher sch = nanase.get_searcher();
+  std::vector<Searcher::ResultType> v = sch.search("dd");
 
   if(v.size() == 0)
     cout << "No results found" << endl;
   for(std::vector<Searcher::ResultType>::iterator itr = v.begin();
       itr != v.end(); ++itr){
-    cout << itr->docid << " " << itr->url << " " << itr->score << endl;
+    cout << itr->docid << " " << itr->url << " " << itr->title
+         << " " << itr->score << endl;
   }
 
   nanase.close();

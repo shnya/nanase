@@ -24,7 +24,6 @@
 #include <vector>
 #include <map>
 #include <algorithm>
-
 #include "utf8.hpp"
 #include "indexdb.hpp"
 #include "docinfo.hpp"
@@ -40,15 +39,36 @@ namespace nanase {
     typedef std::pair<IdxType::const_iterator,
                       IdxType::const_iterator> IdxTypeRange;
 
+  public:
+    struct ResultType {
+      int docid;
+      double score;
+      std::string url;
+      std::string title;
 
-    static void ExtractConnected(const IdxType &a, IdxType &b, int distance){
+      ResultType(int _docid, double _score,
+                 const std::string &_url = "", const std::string &_title = "")
+        : docid(_docid), score(_score), url(_url), title(_title) {}
+
+      ~ResultType(){}
+    };
+
+    struct CompareResult {
+      bool operator()(const ResultType &a, const ResultType &b) const throw() {
+        return a.score > b.score;
+      }
+    };
+
+  private:
+
+    static void _CheckConnection(const IdxType &a, IdxType &b, int distance){
       IdxType::iterator itr = b.begin();
       while(itr != b.end()){
         IdxTypeRange found = a.equal_range(itr->first);
         bool connected = false;
         for(IdxType::const_iterator itr2 = found.first;
             itr2 != found.second; ++itr2){
-          if(itr->second == itr2->second + distance){
+          if(itr->second + distance == itr2->second){
             connected = true;
           }
         }
@@ -60,18 +80,16 @@ namespace nanase {
     }
 
     // Argument vector will be destroyed.
-    static IdxType& ExactMatch(std::vector<IdxType> &v, size_t char_num){
-      for(size_t i = 1; i < v.size(); i++){
-        ExtractConnected(v[i-1], v[i], (char_num == 2 * i + 1) ? 1 : 2);
+    static IdxType& CheckConnection(std::vector<IdxType> &v, size_t char_num){
+      for(size_t i = v.size() - 1; i > 0; i--){
+        _CheckConnection(v[i], v[i-1], (char_num == 2 * i + 1) ? 1 : 2);
       }
-      return v[v.size() - 1];
+      return v[0];
     }
 
-    std::map<size_t, double> _Search(const char* query) const {
+    std::map<size_t, double> ExactMatch(const char* query,
+                                        const char* ns = "") const {
       std::vector<IdxType> v;
-
-      const char *p = query, *q;
-      size_t char_num = 0;
 
       // This code is a bit complicated due to performance.
       // I will search with the query splitted into each two-letters,
@@ -80,61 +98,29 @@ namespace nanase {
       // input abc => search {ab, bc}  // overlapped
       // input abcd => search {ab, cd} // not overlapped
       // input abcde => search {ab, cd, de} // overlapped
-      while(*p != '\0'){
-        const char *sub = utf8substr(p, 2);
-        // dealing with that the number of character is odd.
-        if(*(utf8nextchar(sub)) == '\0'){
-          delete[] sub;
-          p = utf8nextchar(q);
-          char_num -= 1;
-          continue;
-        }
-
-        v.push_back(idxdb.read_index(sub));
+      std::vector<const char *> str_idx = utf8index(query);
+      size_t i = 0;
+      size_t char_num = str_idx.size();
+      while(i < char_num){
+        const char *sub = utf8substr(str_idx[i], 2);
+        v.push_back(idxdb.read_index(sub, ns));
         delete[] sub;
-        q = p;
-        p = utf8nextchar(utf8nextchar(p));
-        char_num += 2;
+        i += (i + 3 == char_num) ? 1 : 2;
       }
+
       std::map<size_t, double> results;
 
       if(v.size() == 0) return results;
-      IdxType &matched = ExactMatch(v, char_num);
-      for(IdxType::iterator itr = matched.begin(); itr != matched.end(); ++itr){
+      IdxType &cand = CheckConnection(v, char_num);
+      for(IdxType::iterator itr = cand.begin(); itr != cand.end(); ++itr){
         results[itr->first] += 1.0;
       }
 
       return results;
     }
 
-
-    Searcher();
-
-  public:
-    struct ResultType {
-      int docid;
-      double score;
-      std::string url;
-      std::string text;
-
-      ResultType(int _docid, double _score,
-                 const std::string &_url = "", const std::string &_text = "")
-        : docid(_docid), score(_score), url(_url), text(_text) {}
-
-      ~ResultType(){}
-    };
-
-    struct CompareResult {
-      bool operator()(const ResultType &a, const ResultType &b) const throw() {
-        return a.score > b.score;
-      }
-    };
-
-    std::vector<ResultType>
-    search(const char* query) const {
-      std::vector<ResultType> results;
-
-      std::map<size_t, double> scores = _Search(query);
+    void _Search(const char* query, std::vector<ResultType> &results) const {
+      std::map<size_t, double> scores = ExactMatch(query, "");
       int max_document_num  = idxdb.get_current_docid();
       double idf = log(static_cast<double>(1 + max_document_num)
                        / static_cast<double>(scores.size()));
@@ -146,8 +132,19 @@ namespace nanase {
         results.push_back(ResultType(itr->first,
                                      idf * itr->second
                                      / static_cast<double>(docinfo.wordnum),
-                                     docinfo.url));
+                                     docinfo.url,
+                                     docinfo.title));
       }
+    }
+
+    Searcher();
+
+  public:
+
+    std::vector<ResultType>
+    search(const char* query) const {
+      std::vector<ResultType> results;
+      _Search(query, results);
       std::sort(results.begin(), results.end(), CompareResult());
       return results;
     }

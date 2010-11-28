@@ -23,6 +23,8 @@
 
 #include <cstring>
 #include <exception>
+#include <vector>
+
 namespace nanase {
   class UTF8Exception : public std::exception {
   public:
@@ -62,6 +64,16 @@ namespace nanase {
 
   const char *utf8nextchar(const char *s){
     return s + utf8charlen(*s);
+  }
+
+  std::vector<const char *> utf8index(const char *s){
+    std::vector<const char *> v;
+    const char *p = s;
+    while(*p != '\0'){
+      v.push_back(p);
+      p = utf8nextchar(p);
+    }
+    return v;
   }
 
   const char *utf8advance(const char *s, unsigned int len){

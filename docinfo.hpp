@@ -1,3 +1,4 @@
+
 // Copyright (C) 2010 Masahiko Higashiyama
 //
 // Permission is hereby granted, free of charge, to any person obtaining a
@@ -22,6 +23,7 @@
 #define DOCINFO_HPP
 
 #include <cstring>
+#include "debug.hpp"
 
 namespace nanase {
   struct DocInfo {
@@ -29,32 +31,34 @@ namespace nanase {
 
     size_t wordnum;
     size_t urllen;
-    size_t textlen;
+    size_t titlelen;
     char *url;
-    char *text;
+    char *title;
 
     DocInfo(const DocInfo &);
     DocInfo &operator=(const DocInfo &);
 
     DocInfo(int _docid)
-      : docid(_docid),  wordnum(0), urllen(0), textlen(0),
-        url(NULL), text(NULL)  { }
+      : docid(_docid),  wordnum(0), urllen(0), titlelen(0),
+        url(NULL), title(NULL)  { }
 
-    DocInfo(int _docid, const char *_url, const char *_text)
+    DocInfo(int _docid, const char *_url, const char *_title)
       : docid(_docid),
-        urllen(sizeof(char) * strlen(_url)), textlen(sizeof(char) * strlen(_text)),
-        url(new char[urllen]), text(new char[textlen]) {
+        urllen(sizeof(char) * strlen(_url)),
+        titlelen(sizeof(char) * strlen(_title)),
+        url(new char[urllen]), title(new char[titlelen]) {
       memcpy(url, _url, urllen);
-      memcpy(text, _text, textlen);
+      memcpy(title, _title, titlelen);
     }
 
     ~DocInfo(){
       if(url != NULL) delete[] url;
-      if(text != NULL) delete[] text;
+      if(title != NULL) delete[] title;
     }
 
     void serialize(unsigned char **_data, size_t *_data_size) const throw() {
-      size_t data_size = sizeof(size_t) * 3 + sizeof(char) * (urllen + textlen);
+      size_t data_size = sizeof(size_t) * 3
+        + sizeof(char) * (urllen + titlelen);
       unsigned char *data = new unsigned char[data_size];
 
       size_t offset = 0;
@@ -62,24 +66,23 @@ namespace nanase {
       offset += sizeof(size_t);
       memcpy(data + offset, &urllen, sizeof(size_t));
       offset += sizeof(size_t);
-      memcpy(data + offset, &textlen, sizeof(size_t));
+      memcpy(data + offset, &titlelen, sizeof(size_t));
       offset += sizeof(size_t);
       if(urllen > 0){
         memcpy(data + offset, url, sizeof(char) * urllen);
         offset += sizeof(char) * urllen;
       }
-      if(textlen > 0){
-        memcpy(data + offset, text, sizeof(char) * textlen);
+      if(titlelen > 0){
+        memcpy(data + offset, title, sizeof(char) * titlelen);
       }
 
       *_data_size = data_size;
       *_data = data;
     }
 
-    void deserialize(unsigned char *data, const size_t data_size,
-                     bool with_text) throw() {
+    void deserialize(unsigned char *data, const size_t data_size) throw() {
 
-      if(data_size < sizeof(size_t) * 3 + sizeof(char) * (urllen + textlen))
+      if(data_size < sizeof(size_t) * 3 + sizeof(char) * (urllen + titlelen))
         return;
 
       size_t offset = 0;
@@ -87,22 +90,20 @@ namespace nanase {
       offset += sizeof(size_t);
       memcpy(&urllen,  data + offset, sizeof(size_t));
       offset += sizeof(size_t);
-      memcpy(&textlen, data + offset, sizeof(size_t));
+      memcpy(&titlelen, data + offset, sizeof(size_t));
       offset += sizeof(size_t);
 
       if(urllen > 0){
-        char *urll = new char[urllen + 1];
-        memcpy(urll, data + offset, sizeof(char) * urllen);
-        urll[urllen] = '\0';
-        url = urll;
-        offset += sizeof(urllen * sizeof(char));
+        url = new char[urllen + 1];
+        memcpy(url, data + offset, sizeof(char) * urllen);
+        url[urllen] = '\0';
+        offset += sizeof(char) * urllen;
       }
 
-      if(with_text && textlen > 0){
-        char *textl = new char[textlen + 1];
-        memcpy(textl, data + offset, sizeof(char) * textlen);
-        textl[textlen] = '\0';
-        text = textl;
+      if(titlelen > 0){
+        title = new char[titlelen + 1];
+        memcpy(title, data + offset, sizeof(char) * titlelen);
+        title[titlelen] = '\0';
       }
     }
   };
