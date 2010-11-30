@@ -29,7 +29,7 @@ namespace nanase {
   class UTF8Exception : public std::exception {
   public:
     UTF8Exception() {}
-    ~UTF8Exception() throw() {}
+    virtual ~UTF8Exception() throw() {}
   };
 
   int utf8charlen(const unsigned char c)

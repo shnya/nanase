@@ -23,12 +23,12 @@
 
 #include <string>
 #include <cstring>
-#include "debug.hpp"
 
 #include <map>
 #include "serializer.hpp"
 #include "tcmanager.hpp"
 #include "docinfo.hpp"
+#include "constants.hpp"
 
 
 namespace nanase {
@@ -90,8 +90,7 @@ namespace nanase {
       using namespace serializer;
 
       Serializer key(sizeof(unsigned char) * 2 + sizeof(int));
-      unsigned char c = 0xFF;
-      key << c << c << docinfo.docid;
+      key << PtrCon(constants::DOCINFO_PREFIX, 2) << docinfo.docid;
 
       unsigned char *data;
       size_t data_size;
@@ -107,8 +106,7 @@ namespace nanase {
       using namespace serializer;
 
       Serializer key(sizeof(unsigned char) * 2 + sizeof(int));
-      unsigned char c = 0xFF;
-      key << c << c << docinfo.docid;
+      key << PtrCon(constants::DOCINFO_PREFIX, 2) << docinfo.docid;
 
       void *data;
       int data_size;
@@ -120,11 +118,13 @@ namespace nanase {
     }
 
     int get_new_docid() const {
-      return tcm.inc("seq", 3, 1);
+      return tcm.inc(constants::SEQUENCE_KEY_NAME,
+                     strlen(constants::SEQUENCE_KEY_NAME), 1);
     }
 
     int get_current_docid() const {
-      return tcm.inc("seq", 3, 0);
+      return tcm.inc(constants::SEQUENCE_KEY_NAME,
+                     strlen(constants::SEQUENCE_KEY_NAME), 0);
     }
   };
 };

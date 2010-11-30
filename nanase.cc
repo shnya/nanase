@@ -18,6 +18,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 // SOFTWARE.
 
+#include "debug.hpp"
 #include "nanase.hpp"
 
 #include <iostream>
@@ -32,8 +33,7 @@ int main(int argc, char *argv[])
   idx.add("http://www.yahoo.co.jp/", "a_title", "aaa bbb dddd dddccc");
   idx.add("http://www.google.co.jp/", "b_title", "aaa bbb ddd abc ccc");
 
-
-    Searcher sch = nanase.get_searcher();
+  Searcher sch = nanase.get_searcher();
   std::vector<Searcher::ResultType> v = sch.search("dd");
 
   if(v.size() == 0)

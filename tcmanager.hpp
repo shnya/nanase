@@ -55,7 +55,7 @@ namespace nanase {
     public:
       TCManagerException(const char *err) throw() : error(err) {}
       const char *what() const throw() { return error.c_str(); }
-      ~TCManagerException() throw() {}
+      virtual ~TCManagerException() throw() {}
     };
 
     TCManager(void) : hdb(NULL) {}

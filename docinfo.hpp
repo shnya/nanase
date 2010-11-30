@@ -23,7 +23,6 @@
 #define DOCINFO_HPP
 
 #include <cstring>
-#include "debug.hpp"
 
 namespace nanase {
   struct DocInfo {
